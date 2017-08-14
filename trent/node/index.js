@@ -1,29 +1,41 @@
 // index.js
 
-const request = require('request-promise')
+const express = require('express')
+const path = require('path');
+const rp = require('request-promise')
+const exphbs = require('express-handlebars')
 
-const options = {
-  method: 'GET',
-  uri: 'https://risingstack.com',
-  json: true,
-  qs: {
-    limit: 10,
-    skip: 20,
-    sort: 'asc'
-  },
-  headers: {
-    'User-Agent': 'Request-Promise',
-    'Authorization': 'Basic QWxhZGRpbjpPcGVuU2VzYW1l'
-  }
-}
-// https://risingstack.com?limit=10&skip=20&sort=asc
+const app = express()
 
-request(options)
-  .then(function (response) {
-    // Successful request
-    console.log(response)
+app.engine('.hbs', exphbs({
+  defaultLayout: 'main',
+  extname: '.hbs',
+  layoutsDir: path.join(__dirname, 'views/layouts')
+}))
+app.set('view engine', '.hbs')
+app.set('views', path.join(__dirname, 'views'))
+
+app.get('/:city', (req, res) => {
+  rp({
+    uri: 'http://dataservice.accuweather.com/locations/v1/cities/search',
+    qs: {
+      q: req.params.city,
+      apikey: 'UfkPMYB39V6oiv31ZhzATqiiUwQWqZUV'
+         // Use your accuweather API key here
+    },
+    json: true
   })
-  .catch(function (err) {
-    // Error handling
-    console.log(err)
-  })
+    .then((data) => {
+      console.log(data)
+      const jsonObj = data[0]
+      console.log(jsonObj.LocalizedName)
+      res.render('index', {city: jsonObj.LocalizedName, rank:jsonObj.Rank})
+      // TODO : Make this work
+    })
+    .catch((err) => {
+      console.log(err)
+      res.render('error')
+    })
+})
+
+app.listen(3000)
